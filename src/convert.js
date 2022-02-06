@@ -1,0 +1,210 @@
+// getJsonTemplate(void): Object
+// Returns the template json object
+function getJsonTemplate()
+{
+    // Return the template object
+    return {
+        pokemon: [
+            // Pokemon go here
+        ], 
+        trainer: [
+            // Trainer cards go here
+        ], 
+        energy: [
+            // Energy cards go here
+        ]
+    }
+}
+
+// getCardCount(cards: List): Int
+// Gets the total number of cards
+function getCardCount(cards)
+{
+    // Total number of cards
+    let count = 0;
+
+    // Loop over the cards
+    for(let card of cards)
+    {
+        // Add the card count to the list
+        count += card[0];
+    }
+
+    // Return the count
+    return count;
+}
+
+// getJsonLine(line: String): Object
+// Given a line of text from the file
+// containing card details, returns a 
+// json object containing its details.
+function getJsonLine(line)
+{
+    // Split the line on the spaces
+    let content = line.split(' ');
+
+    // Card count is the second index
+    let count = content[1];
+
+    // Set Number is the last index
+    let setNum = content[content.length - 1];
+
+    // Set Name is the second last index
+    let setName = content[content.length - 2];
+
+    // Card name is what is left, joint on spaces
+    let card = content.slice(2, content.length - 2).join(" ");
+
+    // Return the converted card info
+    return [
+        parseInt(count), // Card Count
+        card, // Card Name
+        setName, // Set Name
+        setNum // Set Number
+    ];
+}
+
+// fromJson(content: String): String
+// Given a ptcgo / ptcg live deck 
+// export string, converts the 
+// deck object to json format.
+function toJson(content)
+{
+    // Split the lines in the content
+    let lines = content.split('\n');
+
+    // Sections:
+    // 0: Not Set
+    // 1: Pokemon
+    // 2: Trainer Cards
+    // 3: Energy
+
+    // Get the json template
+    let json = getJsonTemplate();
+
+    let section = 0;
+
+    // Loop over all of the lines
+    for (let line of lines)
+    {
+        // If the line starts with a double hash
+        if (line.startsWith('##'))
+        {
+            // Remove the content after the first
+            // space and the hashes from the string
+            let item = line.split(' ')[0].replace('##', '');
+
+            // Switch on the rest of the content
+            switch(item)
+            {
+                case 'Pokémon':
+                    section = 1;
+                    break;
+
+                case 'Trainer': 
+                    section = 2;
+                    break;
+
+                case 'Energy': 
+                    section = 3;
+                    break;
+            }
+        }
+
+        // If the line starts with a single 
+        // star, followed up by a space
+        else if (line.startsWith('* '))
+        {
+            // Get the content from the line
+
+
+            // Switch on the section
+            switch(section)
+            {
+                case 1: // Pokemon Section
+                    json.pokemon.push(getJsonLine(line)); 
+                    break
+
+                case 2: // Trainers Section
+                    json.trainer.push(getJsonLine(line)); 
+                    break;
+
+                case 3: // Energy Section
+                    json.energy.push(getJsonLine(line)); 
+                    break;
+            }
+        }
+    }
+
+    // Return the finished json object
+    return json;
+}
+
+// fromJson(content: String): String
+// Given a json object, converts the
+// object back to the ptcg online / 
+// ptcg live format.
+function fromJson(json)
+{
+    // Array containing lines
+    // Will be joined on '\n' at the end
+    let content = [
+        "****** Pokémon Trading Card Game Deck List ******", 
+    ];
+
+    let fields = [
+        // Card types in the json object
+        'pokemon', 'trainer', 'energy'
+    ];
+
+    let titles = [
+        // Section titles to put in the export
+        'Pokémon', 'Trainer Cards', 'Energy'
+    ]
+
+    // Total number of cards
+    let count = 0;
+
+    // Loop over all of the fields
+    for (let i = 0; i < fields.length; i++)
+    {
+        // Number of cards in the field
+        let fieldCount = getCardCount(json[fields[i]])
+
+        // Add the field count to the total count
+        count += fieldCount;
+
+        // Whitespace
+        content.push("");
+
+        // Add the pokemon header, as well as the cards count
+        content.push("##" + titles[i] + " - " + fieldCount);
+        
+        // Whitespace
+        content.push("");
+
+        // Loop over all of the pokemon cards
+        for (let card of json[fields[i]])
+        {
+            // Add the card to the string
+            content.push("* " + card.join(" "))
+        }
+    }
+
+    // Add the footer information
+
+    // Whitespace
+    content.push("");
+
+    // Add the total cards to the page
+    content.push("##Total Cards - " + count);
+
+    // Whitespace
+    content.push("");
+
+    // Add the footer to the form
+    content.push("****** Deck List Generated by the Pokémon TCG Online www.pokemon.com/TCGO ******")
+
+    // Return the joined array as a string
+    return content.join('\n');
+}
